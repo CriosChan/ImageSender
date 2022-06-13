@@ -1,6 +1,9 @@
 # ImageSender
 ImageSender is a plugin that allows you to easily send images from a folder on your computer. You can send memes and many other things more easily! **For the moment in pre-alpha**
 
+# Inspiration
+The official inspiration comes from the ReactionImage plugin from Metalloriff. You can find it <a href="https://github.com/Metalloriff/BetterDiscordPlugins/blob/master/ReactionImages.plugin.js">here</a>. I created this plugin because his doesn't work for me. 
+
 # Download
 Download <a href="https://github.com/CriosChan/ImageSender/releases/download/V0.0.1/ImageSender.plugin.js">NekosDotLife</a> plugin and <a href="https://betterdiscord.net/ghdl?url=https://raw.githubusercontent.com/rauenzi/BDPluginLibrary/master/release/0PluginLibrary.plugin.js">ZeresPluginLibrary</a>
 
