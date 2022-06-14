@@ -1,8 +1,9 @@
 /**
  * @name ImageSender
  * @author CriosChan
- * @description A plugin allowing to send any photo from nekos.life in one click
- * @version 0.0.1
+ * @authorLink https://github.com/CriosChan/
+ * @description This plugin allows you to easily send an image from your PC, like memes for example!
+ * @version 0.0.3
  * @invite R7vuNSv
  * @authorid 328191996579545088
  * @updateUrl https://raw.githubusercontent.com/CriosChan/ImageSender/main/ImageSender.plugin.js
@@ -23,7 +24,7 @@
              discord_id:"328191996579545088",
              github_username:"CriosChan",
          }],
-         version:"0.0.1",
+         version:"0.0.3",
          description:"This plugin allows you to easily send an image from your PC, like memes for example!",
          github:"https://github.com/CriosChan/ImageSender",
          github_raw:"https://raw.githubusercontent.com/CriosChan/ImageSender/main/ImageSender.plugin.js"
@@ -53,10 +54,10 @@
      ],
      changelog: [
          {
-             title: "NSFW",
-             type: "fixed",
+             title: "The search bar is coming!",
+             type: "added",
              items: [
-                 "Deletion of all NSFW that do not work or crash discord. Waiting for a fix.",
+                 "The search bar has just been added! For the moment in alpha but theoretically functional, please send me a message in case of problem.",
              ]
          }
      ],
@@ -100,6 +101,9 @@
      </div>`;
   
          const {DiscordSelectors, PluginUtilities, DOMTools, Toasts, DiscordModules: { UserStore: { getCurrentUser } }} = Api;
+
+         let images = []
+         let folders = []
          return class ImageSender extends Plugin {
              constructor()
              {
@@ -134,6 +138,14 @@
              {
                  const form = document.querySelector("form");
                  if (form) this.addButton();
+
+                 let folder = this.settings.folder
+
+                if(folder != ''){
+                    this.read(folder)                        
+                } else {
+                    Toasts.show("[IMAGESENDER] Please go to settings and set a path", { type: "error" })
+                }
              }
  
              term()
@@ -144,18 +156,33 @@
                      document.getElementById("imagesendersendpanel").remove()
                  }
                  PluginUtilities.removeStyle(this.getName());
+
+                 images = []
+                 folders = []
              }
  
-             createbuttons(img){
-                 const buttonhtml = `<div class="buttonContainer-28fw2U da-buttonContainer imagesenderSub" style=''>
-                                 <button style="background: url(${img}); width: 150px; height: 150px; background-size: contain; margin: 4px; background-position: center; background-repeat: no-repeat" aria-label="HugButtonHTML" tabindex="0" type="button" class="buttonWrapper-1ZmCpA da-buttonWrapper button-3BaQ4X button-f2h6uQ lookBlank-21BCro colorBrand-I6CyqQ grow-2sR_-F noFocus-2C7BQj da-noFocus">
-                                     <div class="contents-18-Yxp da-contents button-3AYNKb da-button button-318s1X da-button" style="color: black; font: bold 15px/1 sans-serif; text-shadow: 2px 0 0 #fff, -2px 0 0 #fff, 0 2px 0 #fff, 0 -2px 0 #fff, 1px 1px #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff;">
-                                     </div>
+             createbuttons(img, filename, foldername, needfolder){
+                 const buttonhtml = `<div class="buttonContainer-28fw2U da-buttonContainer imagesenderSub" style='display: grid; grid-template-columns: auto; width: 150px; height: auto;' id="imagebuttons">
+                                    
+                                 <button style="background: url(${img}); width: 150px; height: 150px; background-size: contain; margin-bottom: 15px; background-position: center; background-repeat: no-repeat" aria-label="HugButtonHTML" tabindex="0" type="button" class="buttonWrapper-1ZmCpA da-buttonWrapper button-3BaQ4X button-f2h6uQ lookBlank-21BCro colorBrand-I6CyqQ grow-2sR_-F noFocus-2C7BQj da-noFocus">
                                  </button>
+                                 <div class="contents-18-Yxp da-contents button-3AYNKb da-button button-318s1X da-button" style="color: white; font-size: 15px; text-align: center; width: 150px; height: auto">
+                                 ${filename}    
+                                 </div>
                          </div>`;
                      const imagebutton = DOMTools.createElement(buttonhtml);
-                     document.getElementById("imagesendermain").append(imagebutton);
+                     if(needfolder){
+                        document.getElementById(foldername).append(imagebutton);
+                     } else {
+                        document.getElementById("Results").append(imagebutton);
+                     }
                      return imagebutton;
+             }
+
+             createfilecategory(foldername){
+                const folderhtml = `${foldername} :<div id="${foldername}" style="display: grid; height: 100%; width: 100%; grid-template-columns: auto auto auto auto; grid-gap: 20px; margin-top: 22px">
+                </div>`;
+                document.getElementById("mainimagesender").insertAdjacentHTML('beforeEnd', folderhtml)
              }
              
              addButton() {
@@ -168,18 +195,19 @@
                                  <div class="layer-1Ixpg3">
                                  <div class="backdrop-2ByYRN withLayer-2VVmpp" style="opacity: 0.85; background: hsl(0, calc(var(--saturation-factor, 1) * 0%), 0%);"></div>
                                      <div class="focusLock-2tveLW" role="dialog" aria-labelledby="uid_714" tabindex="-1" aria-modal="true">
-                                         <div class="root-g14mjS small-23Atuv fullscreenOnMobile-ixj0e3" style="opacity: 1; transform: scale(1); width: 720px;">
+                                         <div class="root-g14mjS small-23Atuv fullscreenOnMobile-ixj0e3" style="opacity: 1; transform: scale(1); width: 800px;">
                                              <div class="flex-2S1XBF flex-3BkGQD horizontal-112GEH horizontal-1Piu5- flex-3BkGQD directionRow-2Iu2A9 justifyStart-2Mwniq alignCenter-14kD11 noWrap-hBpHBz header-1zd7se" id="uid_714" style="flex: 0 0 auto;">
                                                  <h2 class="wrapper-1HSdhi fontDisplay-3Gtuks base-21yXnu size20-9iTTnl" style="color:white;font-size:24px">Image Sender </h2>
-                                                 <img src="https://raw.githubusercontent.com/CriosChan/ImageSender/main/logo.png" style="width: 40px; height: 40px"/>
+                                                 <img src="https://raw.githubusercontent.com/CriosChan/ImageSender/main/logo.png" style="width: 40px; height: 40px; margin-left: 15px"/>
+                                             </div>
+                                             <div class="flex-2S1XBF flex-3BkGQD horizontal-112GEH horizontal-1Piu5- flex-3BkGQD directionRow-2Iu2A9 justifyStart-2Mwniq alignCenter-14kD11 noWrap-hBpHBz header-1zd7se" id="search_bar_image" style="display: block">
+                                                <h2 class="wrapper-1HSdhi fontDisplay-3Gtuks base-21yXnu size20-9iTTnl" style="color:white;font-size:18px;margin-bottom: 15px"> Search Bar :</h2>
                                              </div>
                                              <div class="content-2hZxGK content-26qlhD thin-31rlnD scrollerBase-_bVAAt" dir="ltr" style="overflow: hidden scroll; padding-right: 8px;">
                                                  <div class="markdown-19oyJN">
                                                      <div class="paragraph-9M861H" id='imagesenderButtons'>
-                                                         <div class="flex-2S1XBF flex-3BkGQD horizontal-112GEH horizontal-1Piu5- flex-3BkGQD directionRow-2Iu2A9 justifyStart-2Mwniq alignCenter-14kD11 noWrap-hBpHBz header-1zd7se" id="uid_714" style="flex: 0 0 auto;">
-                                                             <div id="imagesendermain" style="display: grid; height: 100%; width: 100%; grid-template-columns: auto auto auto auto;">
+                                                         <div class="flex-2S1XBF flex-3BkGQD horizontal-112GEH horizontal-1Piu5- flex-3BkGQD directionRow-2Iu2A9 justifyStart-2Mwniq alignCenter-14kD11 noWrap-hBpHBz header-1zd7se" id="mainimagesender" style="display: block; color: white; font-size: 25px;">
                                                              
-                                                             </div>
                                                          </div>
                                                      </div>
                                                  </div>
@@ -199,18 +227,46 @@
                      closebutton.addEventListener("click", () => {
                          document.getElementById("imagesendersendpanel").remove()
                      })
-                     
-                     let folder = this.settings.folder
 
-                     if(folder != ''){
-                        this.readandcreate(folder)                        
-                    } else {
-                        Toasts.show("[IMAGESENDER] Please go to settings and set a path", { type: "error" })
-                    }
+                     const input = DOMTools.createElement(`<input class="inputDefault-3FGxgL input-2g-os5" title="Search for image" placeholder="" name="" maxlength="999" aria-labelledby="uid_98668" value="" id="search_bar_image_input"/>`)
+     
+                     document.getElementById("search_bar_image").append(input)
+
+                     document.getElementById("search_bar_image_input").addEventListener("change", () => {
+                        let value = document.getElementById("search_bar_image_input").value
+                        if(value == ''){
+                            document.getElementById("mainimagesender").innerHTML = '';
+
+                            this.create(folders, images, true)
+                        } else {
+                            document.getElementById("mainimagesender").innerHTML = '';
+                            let newimages = []
+                            var loop = new Promise((resolve, reject) => {
+                                images.forEach((image, index, array) => {
+                                    console.log("launch")
+                                    if(image.filename.includes(value)){
+                                        newimages.push(image)
+                                    }
+                                    if (index === array.length -1) resolve()
+                                });
+                            });
+                            loop.then(() => {
+                                this.createfilecategory("Results")
+                                if(newimages.length == 0){
+                                    document.getElementById("Results").append("No Results")
+                                }
+                                this.create([], newimages, false)
+                            })
+                        }
+                    });
+
+                    document.getElementById("mainimagesender").innerHTML = '';
+
+                    this.create(folders, images, true)
                  })
              }
 
-             readandcreate(folder){
+             read(folder){
                 const folderName = path.basename(folder).toLowerCase().replace(/ /g, "")
                 fs.readdir(folder, async (err, filenames) => {
                     if (err) {
@@ -219,11 +275,13 @@
                         return console.error(err);
                     }
 
+                    folders.push(folderName)
+
                     for (let filename of filenames) {
                         const fp = path.join(folder, filename);
                         const stats = fs.statSync(fp)
                         if(this.settings.subfolders && stats.isDirectory()){
-                            this.readandcreate(folder + "\\" + filename)
+                            this.read(folder + "\\" + filename)
                         }
 
                         const ext = filename.split(".")[filename.split(".").length - 1];
@@ -241,11 +299,29 @@
 
                         const data = await new Promise(r => fs.readFile(fp, "base64", (_, d) => r(d)));
 
-                        this.createbuttons("data:image/" + ext + ";base64," + data).addEventListener("click", () => {
-                            this.send("data:image/" + ext + ";base64," + data, filename)
-                        });
+                        images.push({
+                            data: "data:image/" + ext + ";base64," + data,
+                            filename: filename,
+                            foldername: folderName
+                        })
                     }
                 });
+                console.log("finish")
+             }
+
+             create(foldertogenerate, imagetogenerate, createfolder){
+                if(createfolder){
+                    foldertogenerate.forEach(folder => {
+                        this.createfilecategory(folder)
+                    })
+                }
+
+                imagetogenerate.forEach(image => {
+                    this.createbuttons(image.data, image.filename, image.foldername, createfolder).addEventListener("click", () => {
+                        this.send(image.data, image.filename)
+                    });
+                });
+
              }
  
              send(data, filename){
