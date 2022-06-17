@@ -5,7 +5,7 @@ ImageSender is a plugin that allows you to easily send images from a folder on y
 The official inspiration comes from the ReactionImage plugin from Metalloriff. You can find it <a href="https://github.com/Metalloriff/BetterDiscordPlugins/blob/master/ReactionImages.plugin.js">here</a>. I created this plugin because his doesn't work for me. 
 
 # Download
-Download <a href="https://github.com/CriosChan/ImageSender/releases/download/V0.0.3/ImageSender.plugin.js">ImageSender</a> plugin and <a href="https://betterdiscord.net/ghdl?url=https://raw.githubusercontent.com/rauenzi/BDPluginLibrary/master/release/0PluginLibrary.plugin.js">ZeresPluginLibrary</a>
+Download <a href="https://github.com/CriosChan/ImageSender/releases/download/V0.0.4/ImageSender.plugin.js">ImageSender</a> plugin and <a href="https://betterdiscord.net/ghdl?url=https://raw.githubusercontent.com/rauenzi/BDPluginLibrary/master/release/0PluginLibrary.plugin.js">ZeresPluginLibrary</a>
 
 # Installation
 Installing BetterDiscord
