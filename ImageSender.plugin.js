@@ -3,7 +3,7 @@
  * @author CriosChan
  * @authorLink https://github.com/CriosChan/
  * @description This plugin allows you to easily send an image from your PC, like memes for example!
- * @version 0.0.3
+ * @version 0.0.4
  * @invite R7vuNSv
  * @authorid 328191996579545088
  * @updateUrl https://raw.githubusercontent.com/CriosChan/ImageSender/main/ImageSender.plugin.js
@@ -24,7 +24,7 @@
              discord_id:"328191996579545088",
              github_username:"CriosChan",
          }],
-         version:"0.0.3",
+         version:"0.0.4",
          description:"This plugin allows you to easily send an image from your PC, like memes for example!",
          github:"https://github.com/CriosChan/ImageSender",
          github_raw:"https://raw.githubusercontent.com/CriosChan/ImageSender/main/ImageSender.plugin.js"
@@ -33,7 +33,7 @@
      [
         {
             type: "textbox",
-            name: "Image Folder Path",
+            name: "Images Folders Paths : (separate by comma ; exemple : \"Path , OtherPath \")",
             id: "folder",
             value: ""
         },
@@ -42,6 +42,7 @@
 			name: "Use subfolders ?",
 			note: "Allows you to search in the subfolders. ⚠️ The more subfolders your folder has the more likely you are to lag. 🛑High risk of crashing if you have a lot of subfolders",
 			id: "subfolders",
+            disabled: true,
 			value: false
         },
         {
@@ -54,12 +55,26 @@
      ],
      changelog: [
          {
-             title: "The search bar is coming!",
+             title: "Multifolders",
              type: "added",
              items: [
-                 "The search bar has just been added! For the moment in alpha but theoretically functional, please send me a message in case of problem.",
+                 "You can now have several folders in the interface without using the subfolders!",
              ]
-         }
+         },
+         {
+            title: "Subfolders",
+            type: "progress",
+            items: [
+                "You can't activate the subfolders for the moment, it might be deleted because of too many problems.",
+            ]
+        },
+        {
+           title: "Folders",
+           type: "improved",
+           items: [
+               "You can now collapse the folders in the sending interface.",
+           ]
+       }
      ],
      main: "index.js"
  };
@@ -142,9 +157,15 @@
                  let folder = this.settings.folder
 
                 if(folder != ''){
-                    this.read(folder)                        
+                    Toasts.show("[ImageSender] We scan the proposed folders...")
+                    if(folder.includes(',')){
+                        let folders = folder.split(',')
+                        folders.forEach(folder => {
+                            this.read(folder)
+                        })
+                    } else this.read(folder)                        
                 } else {
-                    Toasts.show("[IMAGESENDER] Please go to settings and set a path", { type: "error" })
+                    Toasts.show("[ImageSender] Please go to settings and set a path", { type: "error" })
                 }
              }
  
@@ -180,8 +201,8 @@
              }
 
              createfilecategory(foldername){
-                const folderhtml = `${foldername} :<div id="${foldername}" style="display: grid; height: 100%; width: 100%; grid-template-columns: auto auto auto auto; grid-gap: 20px; margin-top: 22px">
-                </div>`;
+                const folderhtml = `<details open><summary>${foldername} :</summary><div id="${foldername}" class="plugin-inputs collapsible" style="display: grid; height: 100%; width: 100%; grid-template-columns: auto auto auto auto; grid-gap: 20px; margin-top: 22px">
+                </div></details>`;
                 document.getElementById("mainimagesender").insertAdjacentHTML('beforeEnd', folderhtml)
              }
              
@@ -267,10 +288,15 @@
              }
 
              read(folder){
+                if(folder.slice(-1) == ' '){
+                    folder = folder.slice(0, -1)
+                }
+                if(folder.slice(0,1) == ' ') folder = folder.slice(1)
+
                 const folderName = path.basename(folder).toLowerCase().replace(/ /g, "")
                 fs.readdir(folder, async (err, filenames) => {
                     if (err) {
-                        Toasts.show("ImageSender: Failed to load folder named '" + folderName + "'!", { type: "error" });
+                        Toasts.show("[ImageSender] Failed to load folder named '" + folderName + "'!", { type: "error" });
 
                         return console.error(err);
                     }
@@ -286,7 +312,7 @@
 
                         const ext = filename.split(".")[filename.split(".").length - 1];
 
-                        if (!filename.includes(".") || !["jpg", "jpeg", "png", "gif", "bmp"].includes(ext))
+                        if (!filename.includes(".") || !["jpg", "jpeg", "png", "gif", "bmp", "JPG", "JPEG", "PNG", "GIF", "BMP"].includes(ext))
                             continue;
 
                         const fileSizeInBytes = stats.size;
@@ -305,6 +331,8 @@
                             foldername: folderName
                         })
                     }
+
+                    Toasts.show("[ImageSender] " + folderName + " has been successfully loaded")
                 });
                 console.log("finish")
              }
