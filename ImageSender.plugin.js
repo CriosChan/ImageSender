@@ -3,7 +3,7 @@
  * @author CriosChan
  * @authorLink https://github.com/CriosChan/
  * @description This plugin allows you to easily send an image from your PC, like memes for example!
- * @version 0.0.4
+ * @version 0.0.5
  * @invite R7vuNSv
  * @authorid 328191996579545088
  * @updateUrl https://raw.githubusercontent.com/CriosChan/ImageSender/main/ImageSender.plugin.js
@@ -24,7 +24,7 @@
              discord_id:"328191996579545088",
              github_username:"CriosChan",
          }],
-         version:"0.0.4",
+         version:"0.0.5",
          description:"This plugin allows you to easily send an image from your PC, like memes for example!",
          github:"https://github.com/CriosChan/ImageSender",
          github_raw:"https://raw.githubusercontent.com/CriosChan/ImageSender/main/ImageSender.plugin.js"
@@ -51,28 +51,35 @@
 			note: "Allows you to send larger files. Files that are too big are not shown in the interface.",
 			id: "nitro",
 			value: false
+        },
+        {
+            type: "switch",
+            name: "Quit after sending?",
+            note: "Will make the interface close each time you send an image.",
+            id: "quit_after_send",
+            value: false
         }
      ],
      changelog: [
          {
-             title: "Multifolders",
+             title: "Refresh button",
              type: "added",
              items: [
-                 "You can now have several folders in the interface without using the subfolders!",
+                 "This button allows you to reload the folders you have entered, to retrieve new images if you have added any",
              ]
          },
          {
-            title: "Subfolders",
-            type: "progress",
+            title: "New way to leave the interface",
+            type: "added",
             items: [
-                "You can't activate the subfolders for the moment, it might be deleted because of too many problems.",
+                "Just click next to the interface to leave it.",
             ]
         },
         {
-           title: "Folders",
-           type: "improved",
+           title: "Do you want the interface to close after sending?",
+           type: "added",
            items: [
-               "You can now collapse the folders in the sending interface.",
+               "It's possible now, you just have to activate it in the plugin settings and the interface will close automatically after sending an image!",
            ]
        }
      ],
@@ -212,12 +219,17 @@
                  const button = DOMTools.createElement(buttonHTML);
                  form.querySelector(DiscordSelectors.Textarea.buttons).append(button);
                  button.addEventListener("click", () => {
-                     const html = `<div class="layerContainer-2v_Sit" id="imagesendersendpanel">
+                     this.createInterface()
+                 })
+             }
+
+             createInterface(){
+                const html = `<div class="layerContainer-2v_Sit" id="imagesendersendpanel">
                                  <div class="layer-1Ixpg3">
-                                 <div class="backdrop-2ByYRN withLayer-2VVmpp" style="opacity: 0.85; background: hsl(0, calc(var(--saturation-factor, 1) * 0%), 0%);"></div>
+                                 <div class="backdrop-2ByYRN withLayer-2VVmpp" style="opacity: 0.85; background: hsl(0, calc(var(--saturation-factor, 1) * 0%), 0%);" id="image_sender_backdrop"></div>
                                      <div class="focusLock-2tveLW" role="dialog" aria-labelledby="uid_714" tabindex="-1" aria-modal="true">
                                          <div class="root-g14mjS small-23Atuv fullscreenOnMobile-ixj0e3" style="opacity: 1; transform: scale(1); width: 800px;">
-                                             <div class="flex-2S1XBF flex-3BkGQD horizontal-112GEH horizontal-1Piu5- flex-3BkGQD directionRow-2Iu2A9 justifyStart-2Mwniq alignCenter-14kD11 noWrap-hBpHBz header-1zd7se" id="uid_714" style="flex: 0 0 auto;">
+                                             <div class="flex-2S1XBF flex-3BkGQD horizontal-112GEH horizontal-1Piu5- flex-3BkGQD directionRow-2Iu2A9 justifyStart-2Mwniq alignCenter-14kD11 noWrap-hBpHBz header-1zd7se" id="title_bar" style="flex: 0 0 auto;">
                                                  <h2 class="wrapper-1HSdhi fontDisplay-3Gtuks base-21yXnu size20-9iTTnl" style="color:white;font-size:24px">Image Sender </h2>
                                                  <img src="https://raw.githubusercontent.com/CriosChan/ImageSender/main/logo.png" style="width: 40px; height: 40px; margin-left: 15px"/>
                                              </div>
@@ -247,6 +259,10 @@
                      document.getElementById("closebutton").append(closebutton)
                      closebutton.addEventListener("click", () => {
                          document.getElementById("imagesendersendpanel").remove()
+                     })
+
+                     document.getElementById("image_sender_backdrop").addEventListener("click", () => {
+                        document.getElementById("imagesendersendpanel").remove()
                      })
 
                      const input = DOMTools.createElement(`<input class="inputDefault-3FGxgL input-2g-os5" title="Search for image" placeholder="" name="" maxlength="999" aria-labelledby="uid_98668" value="" id="search_bar_image_input"/>`)
@@ -281,20 +297,35 @@
                         }
                     });
 
+                    const reload_button = DOMTools.createElement(`<div style="text-align: right; width:70%"><button id="reload_button" style="background: url(https://raw.githubusercontent.com/CriosChan/ImageSender/main/reload.png); width: 40px; height: 40px; background-size: contain; margin-bottom: 15px; background-position: center; background-repeat: no-repeat; float:right" aria-label="HugButtonHTML" tabindex="0" type="button" class="buttonWrapper-1ZmCpA da-buttonWrapper button-3BaQ4X button-f2h6uQ lookBlank-21BCro colorBrand-I6CyqQ grow-2sR_-F noFocus-2C7BQj da-noFocus">
+                    </button></div>`)
+
+                    document.getElementById("title_bar").append(reload_button)
+                    document.getElementById("reload_button").addEventListener("click", () => {
+                        const button = document.querySelector(".imagesender");
+                        if (button) button.remove();
+                        if(document.getElementById("imagesendersendpanel") != null){
+                            document.getElementById("imagesendersendpanel").remove()
+                        }
+                        images = []
+                        folders = []
+
+                        this.init()
+                    })
+
                     document.getElementById("mainimagesender").innerHTML = '';
 
                     this.create(folders, images, true)
-                 })
              }
 
-             read(folder){
+             async read(folder){
                 if(folder.slice(-1) == ' '){
                     folder = folder.slice(0, -1)
                 }
                 if(folder.slice(0,1) == ' ') folder = folder.slice(1)
 
                 const folderName = path.basename(folder).toLowerCase().replace(/ /g, "")
-                fs.readdir(folder, async (err, filenames) => {
+                fs.promises.readdir(folder, async (err, filenames) => {
                     if (err) {
                         Toasts.show("[ImageSender] Failed to load folder named '" + folderName + "'!", { type: "error" });
 
@@ -368,6 +399,9 @@
                     hasSpoiler: false,
                     filename: filename,
                 })
+                if(this.settings.quit_after_send){
+                    document.getElementById("imagesendersendpanel").remove()
+                }
             }
             dataURLtoFile(dataurl, filename) {
                 var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
