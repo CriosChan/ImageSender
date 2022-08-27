@@ -3,7 +3,7 @@
  * @author CriosChan
  * @authorLink https://github.com/CriosChan/
  * @description This plugin allows you to easily send an image from your PC, like memes for example!
- * @version 0.0.5
+ * @version 0.0.6
  * @invite R7vuNSv
  * @authorid 328191996579545088
  * @updateUrl https://raw.githubusercontent.com/CriosChan/ImageSender/main/ImageSender.plugin.js
@@ -13,7 +13,7 @@
 
  const fs = require('fs');
  const path = require("path");
- 
+
  module.exports = (() => {
  
  const config = {
@@ -24,7 +24,7 @@
              discord_id:"328191996579545088",
              github_username:"CriosChan",
          }],
-         version:"0.0.5",
+         version:"0.0.6",
          description:"This plugin allows you to easily send an image from your PC, like memes for example!",
          github:"https://github.com/CriosChan/ImageSender",
          github_raw:"https://raw.githubusercontent.com/CriosChan/ImageSender/main/ImageSender.plugin.js"
@@ -184,7 +184,6 @@
                      document.getElementById("imagesendersendpanel").remove()
                  }
                  PluginUtilities.removeStyle(this.getName());
-
                  images = []
                  folders = []
              }
@@ -223,6 +222,7 @@
                  })
              }
 
+
              createInterface(){
                 const html = `<div class="layerContainer-2v_Sit" id="imagesendersendpanel">
                                  <div class="layer-1Ixpg3">
@@ -255,7 +255,7 @@
                              </div>
                              `;
                      document.querySelector("#app-mount").insertAdjacentHTML('beforeEnd', html);
-                     const closebutton = DOMTools.createElement(`<button type="submit" class="button-f2h6uQ lookFilled-yCfaCM colorBrand-I6CyqQ sizeMedium-2bFIHr grow-2sR_-F"><div class="contents-3ca1mk">Close</div></button>`)
+                     const closebutton = DOMTools.createElement(`<button type="submit" class="button-f2h6uQ lookFilled-yCfaCM colorRed-rQXKgM sizeMedium-2bFIHr grow-2sR_-F"><div class="contents-3ca1mk">Close</div></button>`)
                      document.getElementById("closebutton").append(closebutton)
                      closebutton.addEventListener("click", () => {
                          document.getElementById("imagesendersendpanel").remove()
@@ -297,10 +297,11 @@
                         }
                     });
 
-                    const reload_button = DOMTools.createElement(`<div style="text-align: right; width:70%"><button id="reload_button" style="background: url(https://raw.githubusercontent.com/CriosChan/ImageSender/main/reload.png); width: 40px; height: 40px; background-size: contain; margin-bottom: 15px; background-position: center; background-repeat: no-repeat; float:right" aria-label="HugButtonHTML" tabindex="0" type="button" class="buttonWrapper-1ZmCpA da-buttonWrapper button-3BaQ4X button-f2h6uQ lookBlank-21BCro colorBrand-I6CyqQ grow-2sR_-F noFocus-2C7BQj da-noFocus">
-                    </button></div>`)
+                    const reload_button_and_signal = DOMTools.createElement(`<div style="margin-left: auto; margin-right: 0; display: inline-block; vertical-align: middle">
+                        <button id="reload_button" style="background: url(https://raw.githubusercontent.com/CriosChan/ImageSender/main/reload.png); width: 30px; height: 30px; background-size: contain; background-position: center; background-repeat: no-repeat; display: inline-block; vertical-align: middle"" aria-label="HugButtonHTML" tabindex="0" type="button" class="buttonWrapper-1ZmCpA da-buttonWrapper button-3BaQ4X button-f2h6uQ lookBlank-21BCro colorBrand-I6CyqQ grow-2sR_-F noFocus-2C7BQj da-noFocus"></button>
+                    </div>`)
 
-                    document.getElementById("title_bar").append(reload_button)
+                    document.getElementById("title_bar").append(reload_button_and_signal)
                     document.getElementById("reload_button").addEventListener("click", () => {
                         const button = document.querySelector(".imagesender");
                         if (button) button.remove();
@@ -343,7 +344,7 @@
 
                         const ext = filename.split(".")[filename.split(".").length - 1];
 
-                        if (!filename.includes(".") || !["jpg", "jpeg", "png", "gif", "bmp", "JPG", "JPEG", "PNG", "GIF", "BMP"].includes(ext))
+                        if (!filename.includes(".") || !["jpg", "jpeg", "png", "gif", "bmp", "webp", "JPG", "JPEG", "PNG", "GIF", "BMP", "WEBP"].includes(ext))
                             continue;
 
                         const fileSizeInBytes = stats.size;
