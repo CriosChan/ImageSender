@@ -3,7 +3,7 @@
  * @author CriosChan
  * @authorLink https://github.com/CriosChan/
  * @description This plugin allows you to easily send an image from your PC, like memes for example!
- * @version 0.0.6
+ * @version 0.0.7
  * @invite R7vuNSv
  * @authorid 328191996579545088
  * @updateUrl https://raw.githubusercontent.com/CriosChan/ImageSender/main/ImageSender.plugin.js
@@ -24,27 +24,13 @@
              discord_id:"328191996579545088",
              github_username:"CriosChan",
          }],
-         version:"0.0.6",
+         version:"0.0.7",
          description:"This plugin allows you to easily send an image from your PC, like memes for example!",
          github:"https://github.com/CriosChan/ImageSender",
          github_raw:"https://raw.githubusercontent.com/CriosChan/ImageSender/main/ImageSender.plugin.js"
      },
      defaultConfig:
      [
-        {
-            type: "textbox",
-            name: "Images Folders Paths : (separate by comma ; exemple : \"Path , OtherPath \")",
-            id: "folder",
-            value: ""
-        },
-        {
-            type: "switch",
-			name: "Use subfolders ?",
-			note: "Allows you to search in the subfolders. ⚠️ The more subfolders your folder has the more likely you are to lag. 🛑High risk of crashing if you have a lot of subfolders",
-			id: "subfolders",
-            disabled: true,
-			value: false
-        },
         {
             type: "switch",
 			name: "Nitro User ?",
@@ -62,26 +48,12 @@
      ],
      changelog: [
          {
-             title: "Refresh button",
-             type: "added",
+             title: "Things are starting to move",
+             type: "improved",
              items: [
-                 "This button allows you to reload the folders you have entered, to retrieve new images if you have added any",
-             ]
-         },
-         {
-            title: "New way to leave the interface",
-            type: "added",
-            items: [
-                "Just click next to the interface to leave it.",
+                "I'm starting to change my way of coding to use BetterDiscord's Native. There is now a new interface for the parameters, a bit cleaner than before. The next changes will concern the main interface! Even if you won't see much change because everything is done in the background."
             ]
-        },
-        {
-           title: "Do you want the interface to close after sending?",
-           type: "added",
-           items: [
-               "It's possible now, you just have to activate it in the plugin settings and the interface will close automatically after sending an image!",
-           ]
-       }
+         }
      ],
      main: "index.js"
  };
@@ -111,8 +83,9 @@
  
      start() { }
      stop() { }
+
  } : (([Plugin, Api]) => {
-     
+    var ownLocations = {}
      const plugin = (Plugin, Api) =>
      {
          const buttonHTML = `<div class="buttonContainer-2lnNiN da-buttonContainer imagesender">
@@ -141,36 +114,175 @@
              getDataName = () => this.getName() + "." + getCurrentUser().id;
              loadSettings = s => PluginUtilities.loadSettings(this.getDataName(), PluginUtilities.loadSettings(this.getName(), s || this.defaultSettings));
              saveSettings = s => PluginUtilities.saveSettings(this.getDataName(), this.settings || s);
-             
-             getSettingsPanel() {
-                 const panel = this.buildSettingsPanel();
-                         
-                 panel.addListener(() => {
-                     this.term();
-                     this.init();
-                 });
- 
-                 return panel.getElement();
-             }
  
              onStart = () => this.init();
              onStop = () => this.term();
+
+             getSettingsPanel(collapseStates = {}){
+
+                let settingsPanel;
+                        
+                return settingsPanel = BDFDB.PluginUtils.createSettingsPanel(this, {
+                    collapseStates: collapseStates,
+                    children: _ => {
+                        let settingsItems = []
+                        settingsItems.push(BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.CollapseContainer, {
+                            title: "General Settings",
+                            collapseStates: collapseStates,
+                            children: [
+                                BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.SettingsSaveItem, {
+                                    type: "Switch",
+                                    plugin: this,
+                                    keys: ["nitro"],
+                                    label: "Nitro User ?",
+                                    value: this.settings.nitro
+                                }),
+                                BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.SettingsSaveItem, {
+                                    type: "Switch",
+                                    plugin: this,
+                                    keys: ["quit_after_send"],
+                                    label: "Quit after sending?",
+                                    value: this.settings.quit_after_send
+                                })
+                            ]
+                        }))
+
+                        const locationInputs = {name: "", path: ""};
+                        settingsItems.push(BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.CollapseContainer, {
+							title: "Images Locations",
+							collapseStates: collapseStates,
+							children: [
+                                BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.FormComponents.FormTitle, {
+                                    className: BDFDB.disCN.marginbottom4,
+                                    tag: BDFDB.LibraryComponents.FormComponents.FormTitle.Tags.H3,
+                                    children: "Add Folder to the plugin"
+                                }),
+                                BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.Flex, {
+                                    className: BDFDB.disCN.marginbottom8,
+                                    align: BDFDB.LibraryComponents.Flex.Align.END,
+                                    children: [
+                                        BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.FormComponents.FormItem, {
+                                            title: "Folder Name :",
+                                            children: BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.TextInput, {
+                                                value: locationInputs.name,
+                                                placeholder: "Folder Name",
+                                                onChange: value => locationInputs.name = value
+                                            })
+                                        }),
+                                        BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.FormComponents.FormItem, {
+                                            title: "Path :",
+                                            children: BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.TextInput, {
+                                                value: locationInputs.path,
+                                                placeholder: "Path",
+                                                onChange: value => locationInputs.path = value
+                                            })
+                                        }),
+                                        BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.Button, {
+											style: {marginBottom: 1},
+											onClick: _ => {
+												for (let key in locationInputs) if (!locationInputs[key] || !locationInputs[key].trim()) return BDFDB.NotificationUtils.toast("Fill out all fields to add a new Location", {type: "danger"});
+												let name = locationInputs.name.trim();
+												let location = locationInputs.path.trim();
+												if (ownLocations[name]) return BDFDB.NotificationUtils.toast("A Location with the choosen Name already exists, please choose another Name", {type: "danger"});
+												else if (!BDFDB.LibraryRequires.fs.existsSync(location)) return BDFDB.NotificationUtils.toast("The choosen download Location is not a valid Path to a Folder", {type: "danger"});
+												else {
+													ownLocations[name] = {enabled: true, location: location};
+													BDFDB.DataUtils.save(ownLocations, this, "ownLocations");
+													BDFDB.PluginUtils.refreshSettingsPanel(this, settingsPanel, collapseStates);
+                                                    this.term()
+                                                    this.init()
+												}
+											},
+											children: BDFDB.LanguageUtils.LanguageStrings.ADD
+										})
+                                    ]
+                                })
+                            ].concat(BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.SettingsPanelList, {
+								title: "Your own Download Locations",
+								dividerTop: true,
+								children: Object.keys(ownLocations).map(name => {
+									let locationName = name;
+									return BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.Card, {
+										horizontal: true,
+										children: [
+											BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.Flex.Child, {
+												grow: 0,
+												basis: "180px",
+												children: BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.TextInput, {
+													value: locationName,
+													placeholder: locationName,
+													size: BDFDB.LibraryComponents.TextInput.Sizes.MINI,
+													maxLength: 100000000000000000000,
+													onChange: value => {
+														ownLocations[value] = ownLocations[locationName];
+														delete ownLocations[locationName];
+														locationName = value;
+														BDFDB.DataUtils.save(ownLocations, this, "ownLocations");
+                                                        this.term()
+                                                        this.init()
+													}
+												})
+											}),
+											BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.Flex.Child, {
+												children: BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.TextInput, {
+													value: ownLocations[locationName].location,
+													placeholder: ownLocations[locationName].location,
+													size: BDFDB.LibraryComponents.TextInput.Sizes.MINI,
+													maxLength: 100000000000000000000,
+													onChange: value => {
+														ownLocations[locationName].location = value;
+														BDFDB.DataUtils.save(ownLocations, this, "ownLocations");
+                                                        this.term()
+                                                        this.init()
+													}
+												})
+											}),
+											BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.Flex.Child, {
+												children: BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.Switch, {
+													value: ownLocations[locationName].enabled,
+													size: BDFDB.LibraryComponents.Switch.Sizes.MINI,
+													onChange: value => {
+														ownLocations[locationName].enabled = value;
+														BDFDB.DataUtils.save(ownLocations, this, "ownLocations");
+                                                        this.term()
+                                                        this.init()
+													}
+												})
+											})
+										],
+										onRemove: _ => {
+											delete ownLocations[locationName];
+											BDFDB.DataUtils.save(ownLocations, this, "ownLocations");
+											BDFDB.PluginUtils.refreshSettingsPanel(this, settingsPanel);
+                                            this.term()
+                                            this.init()
+										}
+									});
+								})
+							})).filter(n => n)
+						}));
+
+                        return settingsItems;
+                    }
+                })
+             }
  
              init()
              {
                  const form = document.querySelector("form");
                  if (form) this.addButton();
 
-                 let folder = this.settings.folder
+                 ownLocations = BDFDB.DataUtils.load(this, "ownLocations");
+                 console.log(ownLocations)
 
-                if(folder != ''){
+                if(ownLocations.length != 0){
                     Toasts.show("[ImageSender] We scan the proposed folders...")
-                    if(folder.includes(',')){
-                        let folders = folder.split(',')
-                        folders.forEach(folder => {
-                            this.read(folder)
-                        })
-                    } else this.read(folder)                        
+                    Object.keys(ownLocations).forEach((location) => {
+                        if(!ownLocations[location].enabled) return;
+                        Toasts.show("[ImageSender] We are scanning '" + location + "'!");
+                        console.log(ownLocations[location].location)
+                        this.read(ownLocations[location].location, location)
+                    })
                 } else {
                     Toasts.show("[ImageSender] Please go to settings and set a path", { type: "error" })
                 }
@@ -207,7 +319,7 @@
              }
 
              createfilecategory(foldername){
-                const folderhtml = `<details open><summary>${foldername} :</summary><div id="${foldername}" class="plugin-inputs collapsible" style="display: grid; height: 100%; width: 100%; grid-template-columns: auto auto auto auto; grid-gap: 20px; margin-top: 22px">
+                const folderhtml = `<details><summary>${foldername} :</summary><div id="${foldername}" class="plugin-inputs collapsible" style="display: grid; height: 100%; width: 100%; grid-template-columns: auto auto auto auto; grid-gap: 20px; margin-top: 22px">
                 </div></details>`;
                 document.getElementById("mainimagesender").insertAdjacentHTML('beforeEnd', folderhtml)
              }
@@ -319,13 +431,7 @@
                     this.create(folders, images, true)
              }
 
-             async read(folder){
-                if(folder.slice(-1) == ' '){
-                    folder = folder.slice(0, -1)
-                }
-                if(folder.slice(0,1) == ' ') folder = folder.slice(1)
-
-                const folderName = path.basename(folder).toLowerCase().replace(/ /g, "")
+             async read(folder, folderName){
                 fs.promises.readdir(folder, async (err, filenames) => {
                     if (err) {
                         Toasts.show("[ImageSender] Failed to load folder named '" + folderName + "'!", { type: "error" });
@@ -338,9 +444,6 @@
                     for (let filename of filenames) {
                         const fp = path.join(folder, filename);
                         const stats = fs.statSync(fp)
-                        if(this.settings.subfolders && stats.isDirectory()){
-                            this.read(folder + "\\" + filename)
-                        }
 
                         const ext = filename.split(".")[filename.split(".").length - 1];
 
