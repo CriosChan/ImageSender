@@ -1,3 +1,7 @@
+```diff
+- After the recent changes in the Discord API, which broke most of the modded clients, ImageSender will not be updated until BetterDiscord version 2.0 is released.
+```
+
 # ImageSender
 ImageSender is a plugin that allows you to easily send images from a folder on your computer. You can send memes and many other things more easily! **For the moment in pre-alpha**
 
