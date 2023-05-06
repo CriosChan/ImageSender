@@ -24,6 +24,10 @@ Installing Plugins/Themes
 
 Alternately, check out <a href="https://docs.betterdiscord.app/users/guides/installing-addons">https://docs.betterdiscord.app/users/guides/installing-addons</a> for a visual step-by-step guide.
 
+# TODO
+- [ ] Add favorites
+- [ ] Add new load system
+
 # Contacts
 <a href="https://www.instagram.com/crios_chan/">Instagram</a><br />
 <a href="https://discord.me/crioschan">Discord</a>
