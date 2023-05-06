@@ -486,7 +486,7 @@ module.exports = (meta) => {
 
       const body = document.createElement("div");
       body.id = "imagesender_body";
-      body.className = "scrollerBase-1Pkza4";
+      body.className = "scroller-2MALzE list-3V14yy thin-RnSY0a scrollerBase-1Pkza4";
       generateimages(body);
 
       panel_content.append(header, body);
