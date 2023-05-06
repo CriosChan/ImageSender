@@ -1,4 +1,4 @@
-![thumbnail] (/ImageSender_thumbnail.png)
+![thumbnail](/ImageSender_thumbnail.png)
 # ImageSender is back to life !
 After the changes that had broken the plugin I had decided, a year ago, not to continue the development of the plugin. However, I kept the idea of completely redoing it. Here we are, I did a complete rewrite of the plugin, theoretically less messy than before!
 
