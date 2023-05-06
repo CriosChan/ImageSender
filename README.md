@@ -1,28 +1,27 @@
-```diff
-- After the recent changes in the Discord API, which broke most of the modded clients, ImageSender will not be updated until BetterDiscord version 2.0 is released.
-```
+# ImageSender is back to life !
+After the changes that had broken the plugin I had decided, a year ago, not to continue the development of the plugin. However, I kept the idea of completely redoing it. Here we are, I did a complete rewrite of the plugin, theoretically less messy than before!
 
-# ImageSender
-ImageSender is a plugin that allows you to easily send images from a folder on your computer. You can send memes and many other things more easily! **For the moment in pre-alpha**
+# What is that ?
+ImageSender is a plugin that allows you to easily send images from a or mutilple folders on your computer. You can send memes and many other things more easily!
 
 # Inspiration
 The official inspiration comes from the ReactionImage plugin from Metalloriff. You can find it <a href="https://github.com/Metalloriff/BetterDiscordPlugins/blob/master/ReactionImages.plugin.js">here</a>. I created this plugin because his doesn't work for me. 
 
 # Download
-Download <a href="https://github.com/CriosChan/ImageSender/releases/download/V0.0.5/ImageSender.plugin.js">ImageSender</a> plugin and <a href="https://betterdiscord.net/ghdl?url=https://raw.githubusercontent.com/rauenzi/BDPluginLibrary/master/release/0PluginLibrary.plugin.js">ZeresPluginLibrary</a>
+Download <a href="https://raw.githubusercontent.com/CriosChan/ImageSender/main/ImageSender.plugin.js">ImageSender</a> plugin using CTRL+S and <a href="https://rauenzi.github.io/BDPluginLibrary/release/0PluginLibrary.plugin.js">ZeresPluginLibrary</a> using CTRL+S too.
 
 # Installation
 Installing BetterDiscord
-Go to the link above and download the installer for your system (BandagedBD_Windows.exe for Windows, BandagedBD_Mac.zip for Mac). Run the installer and select Install.
+Go to <a href="https://betterdiscord.app/">https://betterdiscord.app/</a> and click the big Download button! Then just follow along the installer process!
 
-Alternately, check out https://bd.zerebos.com/#install for a visual step-by-step guide.
+Alternately, check out <a href="https://docs.betterdiscord.app/users/getting-started/installation">https://docs.betterdiscord.app/users/getting-started/installation</a> for a visual step-by-step guide.
 
 Installing Plugins/Themes
-1. Download plugins
+1. Go to Raw page and press CTRL+S, or equivalent.
 2. Open your plugin folder by going to Settings > Plugin > Click the button at the top of the page.
 3. Drag the plugin from your downloads folder to this folder.
 
-Alternately, check out https://bd.zerebos.com/#installthemesplugins for a visual step-by-step guide.
+Alternately, check out <a href="https://docs.betterdiscord.app/users/guides/installing-addons">https://docs.betterdiscord.app/users/guides/installing-addons</a> for a visual step-by-step guide.
 
 # Contacts
 <a href="https://www.instagram.com/crios_chan/">Instagram</a><br />
