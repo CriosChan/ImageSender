@@ -3,7 +3,7 @@
  * @author CriosChan
  * @authorLink https://github.com/CriosChan/
  * @description This plugin allows you to easily send an image from your PC, like memes for example!
- * @version 0.0.1
+ * @version 0.0.2
  * @invite R7vuNSv
  * @authorid 328191996579545088
  * @updateUrl https://raw.githubusercontent.com/CriosChan/ImageSender/main/ImageSender.plugin.js
@@ -12,88 +12,6 @@
  */
 
 module.exports = (meta) => {
-  ////////////////////////////////////
-  /////                          /////
-  /////    ZeresPluginLibrary    /////
-  /////                          /////
-  ////////////////////////////////////
-  if (!BdApi.Plugins.get("ZeresPluginLibrary")) {
-    return {
-      start: () => {
-        BdApi.Plugins.disable(meta.name);
-        BdApi.showConfirmationModal(
-          "Library Missing",
-          `The library plugin needed for ${meta.name} is missing. Please click Download Now to install it.`,
-          {
-            confirmText: "Download Now",
-            cancelText: "Cancel",
-            onConfirm: () => {
-              require("request").get(
-                "https://rauenzi.github.io/BDPluginLibrary/release/0PluginLibrary.plugin.js",
-                async (err, res, body) => {
-                  if (err) return;
-                  await new Promise((r) =>
-                    require("fs").writeFile(
-                      require("path").join(
-                        BdApi.Plugins.folder,
-                        "0PluginLibrary.plugin.js"
-                      ),
-                      body,
-                      r
-                    )
-                  );
-                  BdApi.Plugins.enable(meta.name);
-                }
-              );
-            },
-          }
-        );
-      },
-      stop: () => {},
-    };
-  }
-
-  ////////////////////////////////////
-  /////                          /////
-  /////          Modules         /////
-  /////                          /////
-  ////////////////////////////////////
-
-  const fs = require("fs");
-  const { DiscordSelectors, DOMTools, Settings } =
-    BdApi.Plugins.get("ZeresPluginLibrary").instance.Library;
-  const { Switch, Textbox } = Settings;
-  const cloudUploader = getModule((module) => {
-    return Object.values(module).some((value) => {
-      if (typeof value !== "object" || value === null) return false;
-      const curValue = value;
-
-      return (
-        curValue.NOT_STARTED !== undefined &&
-        curValue.UPLOADING !== undefined &&
-        module.n !== undefined
-      );
-    });
-  });
-  const uploader = BdApi.findModuleByProps("instantBatchUpload");
-
-  ////////////////////////////////////
-  /////                          /////
-  /////         SETTINGS         /////
-  /////                          /////
-  ////////////////////////////////////
-  const settings_default = {
-    nitroUser: false,
-    folders: [],
-  };
-  let settings = {};
-
-  ////////////////////////////////////
-  /////                          /////
-  /////     Global Variables     /////
-  /////                          /////
-  ////////////////////////////////////
-  let loaded_folders = [];
 
   ////////////////////////////////////
   /////                          /////
@@ -135,6 +53,91 @@ module.exports = (meta) => {
     });
     return value > 0;
   }
+
+  ////////////////////////////////////
+  /////                          /////
+  /////    ZeresPluginLibrary    /////
+  /////                          /////
+  ////////////////////////////////////
+  const fs = require("fs")
+  console.log(fs.existsSync(BdApi.Plugins.folder + "\\0PluginLibrary.plugin.js"))
+  if (!BdApi.Plugins.get("ZeresPluginLibrary") && !fs.existsSync(BdApi.Plugins.folder + "\\0PluginLibrary.plugin.js")) {
+    return {
+      start: () => {
+        BdApi.showConfirmationModal(
+          "Library Missing",
+          `The library plugin needed for ${meta.name} is missing. Please click Download Now to install it.`,
+          {
+            confirmText: "Download Now",
+            cancelText: "Cancel",
+            onConfirm: () => {
+              require("request").get(
+                "https://rauenzi.github.io/BDPluginLibrary/release/0PluginLibrary.plugin.js",
+                async (err, res, body) => {
+                  if (err) return;
+                  await new Promise((r) =>
+                    fs.writeFile(
+                      require("path").join(
+                        BdApi.Plugins.folder,
+                        "0PluginLibrary.plugin.js"
+                      ),
+                      body,
+                      r
+                    )).then(async () => {
+                      await delay(1000)
+                      BdApi.Plugins.reload(meta.name)
+                    });
+                  ;
+                }
+              );
+            },
+          }
+        );
+      },
+      stop: () => {},
+    };
+  }
+
+  ////////////////////////////////////
+  /////                          /////
+  /////          Modules         /////
+  /////                          /////
+  ////////////////////////////////////
+
+  const { DiscordSelectors, DOMTools, Settings } =
+    BdApi.Plugins.get("ZeresPluginLibrary").instance.Library;
+  const { Switch, Textbox } = Settings;
+  const cloudUploader = getModule((module) => {
+    return Object.values(module).some((value) => {
+      if (typeof value !== "object" || value === null) return false;
+      const curValue = value;
+
+      return (
+        curValue.NOT_STARTED !== undefined &&
+        curValue.UPLOADING !== undefined &&
+        module.n !== undefined
+      );
+    });
+  });
+  const uploader = BdApi.findModuleByProps("instantBatchUpload");
+
+  ////////////////////////////////////
+  /////                          /////
+  /////         SETTINGS         /////
+  /////                          /////
+  ////////////////////////////////////
+  const settings_default = {
+    nitroUser: false,
+    folders: [],
+  };
+  let settings = {};
+
+  ////////////////////////////////////
+  /////                          /////
+  /////     Global Variables     /////
+  /////                          /////
+  ////////////////////////////////////
+  let loaded_folders = [];
 
   function createMessage(message_content = "", image = ""){
     const container = document.createElement("div");
