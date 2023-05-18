@@ -3,7 +3,7 @@
  * @author CriosChan
  * @authorLink https://github.com/CriosChan/
  * @description This plugin allows you to easily send an image from your PC, like memes for example!
- * @version 0.0.2
+ * @version 0.0.3
  * @invite R7vuNSv
  * @authorid 328191996579545088
  * @updateUrl https://raw.githubusercontent.com/CriosChan/ImageSender/main/ImageSender.plugin.js
@@ -12,7 +12,6 @@
  */
 
 module.exports = (meta) => {
-
   ////////////////////////////////////
   /////                          /////
   /////           Utils          /////
@@ -54,14 +53,41 @@ module.exports = (meta) => {
     return value > 0;
   }
 
+  function generateChecksum(str, algorithm, encoding) {
+    return crypto
+      .createHash(algorithm || "sha256")
+      .update(str, "utf8")
+      .digest(encoding || "hex");
+  }
+
+  function createMessage(message_content = "", image = "") {
+    const container = document.createElement("div");
+    container.id = "imagesender_message";
+    const message = document.createElement("div");
+    message.className = "emptyText-mZZyQk";
+    message.textContent = message_content;
+    const svg = document.createElement("div");
+    svg.style.backgroundImage = `url(${image})`;
+    svg.style.backgroundSize = "contain";
+    svg.style.backgroundRepeat = "no-repeat";
+    svg.style.backgroundPosition = "center";
+    container.append(svg, message);
+    return container;
+  }
+
   ////////////////////////////////////
   /////                          /////
   /////    ZeresPluginLibrary    /////
   /////                          /////
   ////////////////////////////////////
-  const fs = require("fs")
-  console.log(fs.existsSync(BdApi.Plugins.folder + "\\0PluginLibrary.plugin.js"))
-  if (!BdApi.Plugins.get("ZeresPluginLibrary") && !fs.existsSync(BdApi.Plugins.folder + "\\0PluginLibrary.plugin.js")) {
+  const fs = require("fs");
+  console.log(
+    fs.existsSync(BdApi.Plugins.folder + "\\0PluginLibrary.plugin.js")
+  );
+  if (
+    !BdApi.Plugins.get("ZeresPluginLibrary") &&
+    !fs.existsSync(BdApi.Plugins.folder + "\\0PluginLibrary.plugin.js")
+  ) {
     return {
       start: () => {
         BdApi.showConfirmationModal(
@@ -83,11 +109,11 @@ module.exports = (meta) => {
                       ),
                       body,
                       r
-                    )).then(async () => {
-                      await delay(1000)
-                      BdApi.Plugins.reload(meta.name)
-                    });
-                  ;
+                    )
+                  ).then(async () => {
+                    await delay(1000);
+                    BdApi.Plugins.reload(meta.name);
+                  });
                 }
               );
             },
@@ -120,6 +146,8 @@ module.exports = (meta) => {
     });
   });
   const uploader = BdApi.findModuleByProps("instantBatchUpload");
+  const message_sender = BdApi.findModuleByProps("_sendMessage");
+  var crypto = require("crypto");
 
   ////////////////////////////////////
   /////                          /////
@@ -128,7 +156,9 @@ module.exports = (meta) => {
   ////////////////////////////////////
   const settings_default = {
     nitroUser: false,
+    saveLink: false,
     folders: [],
+    savedLinks: [],
   };
   let settings = {};
 
@@ -139,22 +169,6 @@ module.exports = (meta) => {
   ////////////////////////////////////
   let loaded_folders = [];
 
-  function createMessage(message_content = "", image = ""){
-    const container = document.createElement("div");
-      container.id = "imagesender_message";
-      const message = document.createElement("div");
-      message.className = "emptyText-mZZyQk";
-      message.textContent = message_content;
-      const svg = document.createElement("div");
-      svg.style.backgroundImage =
-        `url(${image})`;
-      svg.style.backgroundSize = "contain";
-      svg.style.backgroundRepeat = "no-repeat";
-      svg.style.backgroundPosition = "center";
-      container.append(svg, message);
-      return container
-  }
-
   ////////////////////////////////////
   /////                          /////
   /////       Plugin Events      /////
@@ -163,13 +177,13 @@ module.exports = (meta) => {
 
   const navbar_button_compatibility = (e) => {
     let node = null;
-    //Security to avoid putting the "selected" class on the navbar 
-    if(e.target.nodeName.toLowerCase() == "button"){
-      node = e.target
+    //Security to avoid putting the "selected" class on the navbar
+    if (e.target.nodeName.toLowerCase() == "button") {
+      node = e.target;
     } else {
-      node = e.target.parentElement
+      node = e.target.parentElement;
     }
-    
+
     const navButtonActive_class = remove_selected(
       document.querySelector("#imagesender-picker-tab")
     );
@@ -197,6 +211,16 @@ module.exports = (meta) => {
       settings.nitroUser,
       (checked) => {
         settings.nitroUser = checked;
+        BdApi.saveData(meta.name, "settings", settings);
+      }
+    );
+
+    const saveLinkSwitch = new Switch(
+      "[ALPHA] Save Link on send",
+      "Saves the link of the image you just sent, to later use this link instead of doing an upload. Theoretically more ecological.",
+      settings.saveLink,
+      (checked) => {
+        settings.saveLink = checked;
         BdApi.saveData(meta.name, "settings", settings);
       }
     );
@@ -248,7 +272,11 @@ module.exports = (meta) => {
     });
     folders_settings.append(add_button_el);
 
-    settingsPanel.append(nitroUserSwitch.getElement(), folders_settings);
+    settingsPanel.append(
+      nitroUserSwitch.getElement(),
+      saveLinkSwitch.getElement(),
+      folders_settings
+    );
   }
 
   function loadFiles() {
@@ -259,11 +287,10 @@ module.exports = (meta) => {
         const files_in_folder = fs.readdirSync(folder.path);
         let final_files = {};
         final_files[folder.name] = [];
-        files_in_folder.forEach((file) => {
+        files_in_folder.forEach(async (file) => {
           const fp = folder.path + "\\" + file;
           const stats = fs.statSync(fp);
           const ext = file.split(".")[file.split(".").length - 1];
-
           if (
             !file.includes(".") ||
             !["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(
@@ -277,11 +304,13 @@ module.exports = (meta) => {
           if (fileSizeInMegabytes > 8 && !this.settings.nitro) return;
           if (fileSizeInMegabytes > 100) return;
           const data = fs.readFileSync(fp, { encoding: "base64" });
+          const checksum = await generateChecksum(data);
           final_files[folder.name].push({
             name: file.split(".")[0],
             path: fp,
             data: "data:image/" + ext + ";base64," + data,
             ext: ext,
+            checksum: checksum,
           });
         });
         _loaded_folders.push(final_files);
@@ -346,27 +375,40 @@ module.exports = (meta) => {
     body.innerHTML = "";
     console.log(loaded_folders);
     if (loaded_folders.length == 0) {
-      body.append(createMessage("Hmm... You didn't give a folder in the settings", "https://raw.githubusercontent.com/CriosChan/ImageSender/main/require/folder.svg"));
+      body.append(
+        createMessage(
+          "Hmm... You didn't give a folder in the settings",
+          "https://raw.githubusercontent.com/CriosChan/ImageSender/main/require/folder.svg"
+        )
+      );
     }
 
     const conditions = [
       search.toLowerCase(),
       search.toLowerCase().replaceAll(" ", "_"),
-      search.toLowerCase().replaceAll("_", " ")
+      search.toLowerCase().replaceAll("_", " "),
     ];
     loaded_folders.forEach((loaded_folder, key) => {
       for (var key in loaded_folder) {
         //Button to hide container
-        const hide_container_button = document.createElement("div")
-        hide_container_button.className = "header-1XpmZs interactive-MpGq2z imagesender_hide_container"
-        const text = document.createElement("span")
-        text.className = "headerLabel-1g790w"
-        text.textContent = key
-        const svg = DOMTools.createElement(`<svg class="arrow-2HswgU headerCollapseIcon-3WeMjJ" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M16.59 8.59004L12 13.17L7.41 8.59004L6 10L12 16L18 10L16.59 8.59004Z"></path></svg>`)
-        
-        const filecontainer = document.createElement("div")
-        filecontainer.id = key
-        filecontainer.className = "imagesender_filecontainer"
+        const hide_container_button = document.createElement("div");
+        hide_container_button.className =
+          "header-1XpmZs interactive-MpGq2z imagesender_hide_container";
+        const text = document.createElement("span");
+        text.className = "headerLabel-1g790w";
+        text.textContent = key;
+        const svg = DOMTools.createElement(
+          `<svg class="arrow-2HswgU headerCollapseIcon-3WeMjJ" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M16.59 8.59004L12 13.17L7.41 8.59004L6 10L12 16L18 10L16.59 8.59004Z"></path></svg>`
+        );
+
+        const filecontainer = document.createElement("div");
+        filecontainer.id = key;
+        filecontainer.className = "imagesender_filecontainer";
+
+        let channelID = BdApi.findModuleByProps(
+          "getLastSelectedChannelId"
+        ).getChannelId();
+
         loaded_folder[key].forEach((file) => {
           if (search != "" && !contains(file.name.toLowerCase(), conditions))
             return;
@@ -374,55 +416,84 @@ module.exports = (meta) => {
           button.className = "imagesender_buttons";
           button.style.backgroundImage = `url(${file.data})`;
 
-          button.addEventListener("click", () => {
-            let channelID = BdApi.findModuleByProps(
-              "getLastSelectedChannelId"
-            ).getChannelId();
-
-            const upload = new cloudUploader.n(
-              {
-                file: dataURLtoFile(file.data, `${file.name}.${file.ext}`),
-                platform: 1,
-              },
-              channelID
-            );
-
-            const upload_settings = {
-              channelId: channelID,
-              uploads: [upload],
-              draftType: 0,
-              parsedMessage: {
-                channel_id: channelID,
-                content: "",
+          button.addEventListener("click", async () => {
+            let link = settings.savedLinks[file.checksum]
+            if (link) {
+              const message_settings = {
+                content: link,
                 tts: false,
                 invalidEmojis: [],
-              },
-            };
+                validNonShortcutEmojis: []
+              }
+              message_sender.sendMessage(channelID, message_settings)
+            } else {
+              const upload = new cloudUploader.n(
+                {
+                  file: dataURLtoFile(file.data, `${file.name}.${file.ext}`),
+                  platform: 1,
+                },
+                channelID
+              );
 
-            uploader.uploadFiles(upload_settings);
+              const upload_settings = {
+                channelId: channelID,
+                uploads: [upload],
+                draftType: 0,
+                parsedMessage: {
+                  channel_id: channelID,
+                  content: "",
+                  tts: false,
+                  invalidEmojis: [],
+                },
+              };
+
+              uploader.uploadFiles(upload_settings);
+
+              if (settings.saveLink) {
+                let needed_length =
+                  document.querySelectorAll("a[class*=originalLink]").length +
+                  1;
+                // That's shit
+                while (
+                  document.querySelectorAll("a[class*=originalLink]").length <
+                  needed_length
+                ) {
+                  await delay(1000);
+                }
+                let links = document.querySelectorAll("a[class*=originalLink]");
+                console.log(file.checksum);
+                settings.savedLinks[file.checksum] =
+                  links[links.length - 1].href;
+                BdApi.saveData(meta.name, "settings", settings);
+              }
+            }
           });
 
           filecontainer.append(button);
         });
-        if(filecontainer.childNodes.length != 0){
-          hide_container_button.append(text, svg)
+        if (filecontainer.childNodes.length != 0) {
+          hide_container_button.append(text, svg);
           hide_container_button.addEventListener("click", () => {
-            console.log(svg.classList)
-            if(filecontainer.style.display == 'none'){
-              svg.classList.remove("headerCollapseIconCollapsed-3C20LE")
-              filecontainer.style.display = 'grid'
+            console.log(svg.classList);
+            if (filecontainer.style.display == "none") {
+              svg.classList.remove("headerCollapseIconCollapsed-3C20LE");
+              filecontainer.style.display = "grid";
             } else {
-              svg.classList.add("headerCollapseIconCollapsed-3C20LE")
-              filecontainer.style.display = 'none'
+              svg.classList.add("headerCollapseIconCollapsed-3C20LE");
+              filecontainer.style.display = "none";
             }
-          })
-          body.append(hide_container_button, filecontainer)
+          });
+          body.append(hide_container_button, filecontainer);
         }
       }
     });
     if (body.childNodes.length == 0) {
-      
-      body.append(createMessage("Hmm... Nothing found, that's weird", "/assets/8f79e7f01dbb1afeb122cb3e8c4a342f.svg"));
+      body.append(
+        createMessage(
+          "Hmm... Nothing found, that's weird",
+          "/assets/8f79e7f01dbb1afeb122cb3e8c4a342f.svg"
+        )
+      );
     }
   }
 
@@ -432,7 +503,7 @@ module.exports = (meta) => {
     if (open || document.querySelector("#imagesender-picker-tab")) {
       await delay(100);
       document.querySelector("#imagesender-picker-tab").click();
-      return
+      return;
     }
 
     const emoji_picker = document.querySelector("button[id=emoji-picker-tab]");
@@ -473,14 +544,15 @@ module.exports = (meta) => {
       panel.style.display = "none";
 
       //Prepare search bar
-      const imagesender_searchBar = panel.querySelector("div[class*=searchBar-]").cloneNode(true)
-      imagesender_searchBar.id = "imagesender_searchBar"
+      const imagesender_searchBar = panel
+        .querySelector("div[class*=searchBar-]")
+        .cloneNode(true);
+      imagesender_searchBar.id = "imagesender_searchBar";
 
       //Ui reconstruction
       const panel_content = document.createElement("div");
       panel_content.id = "imagesender-picker-tab-panel";
       panel_content.setAttribute("class", "container-3u7RcY");
-
 
       const header = document.createElement("div");
       header.className = "header-2TLOnc";
@@ -489,14 +561,15 @@ module.exports = (meta) => {
 
       const body = document.createElement("div");
       body.id = "imagesender_body";
-      body.className = "scroller-2MALzE list-3V14yy thin-RnSY0a scrollerBase-1Pkza4";
+      body.className =
+        "scroller-2MALzE list-3V14yy thin-RnSY0a scrollerBase-1Pkza4";
       generateimages(body);
 
       panel_content.append(header, body);
       full_UI.append(panel_content);
-      
+
       //Search bar modifications
-      const searchbar_input = imagesender_searchBar.querySelector("input")
+      const searchbar_input = imagesender_searchBar.querySelector("input");
       searchbar_input.className = "input-2m5SfJ";
       searchbar_input.placeholder = "Search for images";
       searchbar_input.addEventListener("change", (e) => {
