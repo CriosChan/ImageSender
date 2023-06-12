@@ -3,7 +3,7 @@
  * @author CriosChan
  * @authorLink https://github.com/CriosChan/
  * @description This plugin allows you to easily send an image from your PC, like memes for example!
- * @version 0.0.4
+ * @version 0.0.5
  * @invite R7vuNSv
  * @authorid 328191996579545088
  * @updateUrl https://raw.githubusercontent.com/CriosChan/ImageSender/main/ImageSender.plugin.js
@@ -403,7 +403,7 @@ module.exports = (meta) => {
           },
         };
 
-        uploader.upcheck_folders(upload_settings);
+        uploader.uploadFiles(upload_settings);
 
         if (settings.saveLink) {
           const observer = new MutationObserver((mutationList, observer) => {
