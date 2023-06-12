@@ -3,7 +3,7 @@
  * @author CriosChan
  * @authorLink https://github.com/CriosChan/
  * @description This plugin allows you to easily send an image from your PC, like memes for example!
- * @version 0.0.3
+ * @version 0.0.4
  * @invite R7vuNSv
  * @authorid 328191996579545088
  * @updateUrl https://raw.githubusercontent.com/CriosChan/ImageSender/main/ImageSender.plugin.js
@@ -147,7 +147,8 @@ module.exports = (meta) => {
   });
   const uploader = BdApi.findModuleByProps("instantBatchUpload");
   const message_sender = BdApi.findModuleByProps("_sendMessage");
-  var crypto = require("crypto");
+  const crypto = require("crypto");
+  const path = require("path");
 
   ////////////////////////////////////
   /////                          /////
@@ -168,6 +169,7 @@ module.exports = (meta) => {
   /////                          /////
   ////////////////////////////////////
   let loaded_folders = [];
+  let hidden = {};
 
   ////////////////////////////////////
   /////                          /////
@@ -180,15 +182,19 @@ module.exports = (meta) => {
     //Security to avoid putting the "selected" class on the navbar
     if (e.target.nodeName.toLowerCase() == "button") {
       node = e.target;
-    } else {
+    } else if (e.target.className.includes("contents")) {
       node = e.target.parentElement;
+    } else if (e.target.parentElement.className.includes("contents")) {
+      node = e.target.parentElement.parentElement;
     }
 
     const navButtonActive_class = remove_selected(
       document.querySelector("#imagesender-picker-tab")
     );
-    if (document.querySelector("#imagesender-picker-tab-panel"))
-      document.querySelector("#imagesender-picker-tab-panel").remove();
+    if (document.querySelector("#imagesender-picker-tab-panel") != null) {
+      document.querySelector("#imagesender-picker-tab-panel").style.display =
+        "none";
+    }
     node.parentElement.parentElement.parentElement.lastChild.style.display =
       null;
     if (!node.className.includes(navButtonActive_class))
@@ -197,6 +203,22 @@ module.exports = (meta) => {
 
   const reactions_picker_event = () => {
     create_UI(false);
+  };
+
+  const image_swipe_load = () => {
+    const body = document.querySelector("#imagesender_body");
+    const scrollTop = body.scrollTop;
+    const scrollHeight = body.scrollHeight;
+    const clientHeight = body.clientHeight;
+
+    if (scrollTop + clientHeight >= scrollHeight) {
+      generateimages(
+        body,
+        document.querySelector("#imagesender_searchBar").querySelector("input")
+          .value,
+        body.querySelectorAll(".imagesender_buttons").length
+      );
+    }
   };
 
   ////////////////////////////////////
@@ -244,20 +266,20 @@ module.exports = (meta) => {
           BdApi.saveData(meta.name, "settings", settings);
           settingsPanel.innerHTML = "";
           createSettings(settingsPanel);
-          loadFiles();
+          check_folders();
         });
 
         container.className = "container";
         const name = new Textbox("Name", "", element.name, (changes) => {
           settings.folders[i].name = changes;
           BdApi.saveData(meta.name, "settings", settings);
-          loadFiles();
+          check_folders();
         });
 
         const path = new Textbox("Path", "", element.path, (changes) => {
           settings.folders[i].path = changes;
           BdApi.saveData(meta.name, "settings", settings);
-          loadFiles();
+          check_folders();
         });
         container.append(name.getElement(), path.getElement(), trash_button);
         folders_settings.append(container);
@@ -279,41 +301,12 @@ module.exports = (meta) => {
     );
   }
 
-  function loadFiles() {
+  function check_folders() {
     _loaded_folders = [];
     settings.folders.forEach((folder) => {
+      BdApi.showToast(`[${meta.name}] Working on ${folder.name}`);
       if (fs.existsSync(folder.path)) {
-        BdApi.showToast(`[${meta.name}] Working on ${folder.name}`);
-        const files_in_folder = fs.readdirSync(folder.path);
-        let final_files = {};
-        final_files[folder.name] = [];
-        files_in_folder.forEach(async (file) => {
-          const fp = folder.path + "\\" + file;
-          const stats = fs.statSync(fp);
-          const ext = file.split(".")[file.split(".").length - 1];
-          if (
-            !file.includes(".") ||
-            !["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(
-              ext.toLowerCase()
-            )
-          )
-            return;
-          const fileSizeInBytes = stats.size;
-          const fileSizeInMegabytes = fileSizeInBytes / (1024 * 1000);
-
-          if (fileSizeInMegabytes > 8 && !this.settings.nitro) return;
-          if (fileSizeInMegabytes > 100) return;
-          const data = fs.readFileSync(fp, { encoding: "base64" });
-          const checksum = await generateChecksum(data);
-          final_files[folder.name].push({
-            name: file.split(".")[0],
-            path: fp,
-            data: "data:image/" + ext + ";base64," + data,
-            ext: ext,
-            checksum: checksum,
-          });
-        });
-        _loaded_folders.push(final_files);
+        _loaded_folders.push(folder);
         BdApi.showToast(`[${meta.name}] ${folder.name} loaded with success !`, {
           type: "success",
         });
@@ -371,10 +364,81 @@ module.exports = (meta) => {
     return navButtonActive_class;
   }
 
-  function generateimages(body, search = "") {
-    body.innerHTML = "";
-    console.log(loaded_folders);
+  function create_images_button(channelID, path, name, ext) {
+    const button = document.createElement("button");
+    button.className = "imagesender_buttons";
+    const data = fs.readFileSync(path + "\\" + name, { encoding: "base64" });
+    const background = "data:image/" + ext + ";base64," + data;
+    button.style.backgroundImage = `url(${background})`;
+
+    button.addEventListener("click", async () => {
+      let checksum = await generateChecksum(data);
+      let link = settings.savedLinks[checksum];
+      if (link) {
+        const message_settings = {
+          content: link,
+          tts: false,
+          invalidEmojis: [],
+          validNonShortcutEmojis: [],
+        };
+        message_sender.sendMessage(channelID, message_settings);
+      } else {
+        const upload = new cloudUploader.n(
+          {
+            file: dataURLtoFile(background, `${name}`),
+            platform: 1,
+          },
+          channelID
+        );
+
+        const upload_settings = {
+          channelId: channelID,
+          uploads: [upload],
+          draftType: 0,
+          parsedMessage: {
+            channel_id: channelID,
+            content: "",
+            tts: false,
+            invalidEmojis: [],
+          },
+        };
+
+        uploader.upcheck_folders(upload_settings);
+
+        if (settings.saveLink) {
+          const observer = new MutationObserver((mutationList, observer) => {
+            for (const mutation of mutationList) {
+              if (
+                mutation.type === "childList" &&
+                mutation.addedNodes.length > 0
+              ) {
+                if (
+                  mutation.addedNodes[0].querySelector("a[class*=originalLink]")
+                ) {
+                  settings.savedLinks[checksum] =
+                    mutation.addedNodes[0].querySelector(
+                      "a[class*=originalLink]"
+                    ).href;
+                  BdApi.saveData(meta.name, "settings", settings);
+                  observer.disconnect();
+                }
+              }
+            }
+          });
+
+          observer.observe(
+            document.querySelector("ol[data-list-id=chat-messages]"),
+            { childList: true }
+          );
+        }
+      }
+    });
+    return button;
+  }
+
+  async function generateimages(body, search = "", offset = 0) {
     if (loaded_folders.length == 0) {
+      body.innerHTML = "";
       body.append(
         createMessage(
           "Hmm... You didn't give a folder in the settings",
@@ -388,113 +452,138 @@ module.exports = (meta) => {
       search.toLowerCase().replaceAll(" ", "_"),
       search.toLowerCase().replaceAll("_", " "),
     ];
-    loaded_folders.forEach((loaded_folder, key) => {
-      for (var key in loaded_folder) {
-        //Button to hide container
-        const hide_container_button = document.createElement("div");
-        hide_container_button.className =
-          "header-1XpmZs interactive-MpGq2z imagesender_hide_container";
-        const text = document.createElement("span");
-        text.className = "headerLabel-1g790w";
-        text.textContent = key;
-        const svg = DOMTools.createElement(
-          `<svg class="arrow-2HswgU headerCollapseIcon-3WeMjJ" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M16.59 8.59004L12 13.17L7.41 8.59004L6 10L12 16L18 10L16.59 8.59004Z"></path></svg>`
+    if (offset == 0 && search != "") {
+      body.innerHTML = "";
+    }
+    let added = 0;
+    for (const folder of loaded_folders) {
+      const folder_content = fs.readdirSync(folder.path, {
+        withFileTypes: true,
+      });
+
+      let filecontainer = null;
+      if (!document.querySelector(`#${folder.name.replaceAll(" ", "-")}`)) {
+        let { hide_container_button, filecontainer_temp } = create_container(
+          folder.name.replaceAll(" ", "-"),
+          folder_content.length
         );
+        filecontainer = filecontainer_temp;
+        body.append(hide_container_button, filecontainer);
+      } else {
+        filecontainer = document.querySelector(
+          `#${folder.name.replaceAll(" ", "-")}`
+        );
+        hide_container_button = document.querySelector(
+          `#${folder.name.replaceAll(" ", "-")}-hide`
+        );
+      }
 
-        const filecontainer = document.createElement("div");
-        filecontainer.id = key;
-        filecontainer.className = "imagesender_filecontainer";
-
-        let channelID = BdApi.findModuleByProps(
-          "getLastSelectedChannelId"
-        ).getChannelId();
-
-        loaded_folder[key].forEach((file) => {
-          if (search != "" && !contains(file.name.toLowerCase(), conditions))
-            return;
-          const button = document.createElement("button");
-          button.className = "imagesender_buttons";
-          button.style.backgroundImage = `url(${file.data})`;
-
-          button.addEventListener("click", async () => {
-            let link = settings.savedLinks[file.checksum]
-            if (link) {
-              const message_settings = {
-                content: link,
-                tts: false,
-                invalidEmojis: [],
-                validNonShortcutEmojis: []
-              }
-              message_sender.sendMessage(channelID, message_settings)
-            } else {
-              const upload = new cloudUploader.n(
-                {
-                  file: dataURLtoFile(file.data, `${file.name}.${file.ext}`),
-                  platform: 1,
-                },
-                channelID
-              );
-
-              const upload_settings = {
-                channelId: channelID,
-                uploads: [upload],
-                draftType: 0,
-                parsedMessage: {
-                  channel_id: channelID,
-                  content: "",
-                  tts: false,
-                  invalidEmojis: [],
-                },
-              };
-
-              uploader.uploadFiles(upload_settings);
-
-              if (settings.saveLink) {
-                let needed_length =
-                  document.querySelectorAll("a[class*=originalLink]").length +
-                  1;
-                // That's shit
-                while (
-                  document.querySelectorAll("a[class*=originalLink]").length <
-                  needed_length
-                ) {
-                  await delay(1000);
-                }
-                let links = document.querySelectorAll("a[class*=originalLink]");
-                console.log(file.checksum);
-                settings.savedLinks[file.checksum] =
-                  links[links.length - 1].href;
-                BdApi.saveData(meta.name, "settings", settings);
-              }
-            }
-          });
-
-          filecontainer.append(button);
-        });
-        if (filecontainer.childNodes.length != 0) {
-          hide_container_button.append(text, svg);
-          hide_container_button.addEventListener("click", () => {
-            console.log(svg.classList);
-            if (filecontainer.style.display == "none") {
-              svg.classList.remove("headerCollapseIconCollapsed-3C20LE");
-              filecontainer.style.display = "grid";
-            } else {
-              svg.classList.add("headerCollapseIconCollapsed-3C20LE");
-              filecontainer.style.display = "none";
-            }
-          });
-          body.append(hide_container_button, filecontainer);
+      let emergency_load = false;
+      if (hidden[folder.name.replaceAll(" ", "-")]) {
+        console.log(hidden[folder.name.replaceAll(" ", "-")].isHidden)
+        if (hidden[folder.name.replaceAll(" ", "-")].isHidden) {
+          offset =
+            offset -
+            filecontainer.querySelectorAll(".imagesender_buttons").length;
+          continue;
+        } else {
+          emergency_load = true;
+          hidden[folder.name.replaceAll(" ", "-")] = null;
         }
       }
-    });
-    if (body.childNodes.length == 0) {
-      body.append(
-        createMessage(
-          "Hmm... Nothing found, that's weird",
-          "/assets/8f79e7f01dbb1afeb122cb3e8c4a342f.svg"
-        )
-      );
+
+      if (folder_content.length <= offset) {
+        offset = offset - folder_content.length;
+        continue;
+      }
+      let channelID = BdApi.findModuleByProps(
+        "getLastSelectedChannelId"
+      ).getChannelId();
+      let index = 0;
+      for (const file of folder_content) {
+        if (index < offset) {
+          index++;
+          continue;
+        }
+        if (added > 11 && emergency_load == false) break;
+        const ext = path.extname(file.name).toLowerCase().replace(".", "");
+        if (["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(ext)) {
+          if (
+            (search != "" && contains(file.name.toLowerCase(), conditions)) ||
+            search == ""
+          ) {
+            index++;
+            added++;
+
+            filecontainer.append(
+              create_images_button(channelID, folder.path, file.name, ext)
+            );
+            await new Promise((resolve) => setTimeout(resolve, 0));
+          }
+        }
+      }
+      if (filecontainer.children.length == 0) {
+        hide_container_button.remove();
+        filecontainer.remove();
+      }
+      if (added > 11 || emergency_load == true) {
+        break;
+      } else {
+        offset = 0;
+        continue;
+      }
     }
+  }
+
+  function create_container(name, length) {
+    //Button to hide container
+    const hide_container_button = document.createElement("div");
+    hide_container_button.className =
+      "header-1XpmZs interactive-MpGq2z imagesender_hide_container";
+    hide_container_button.id = `${name}-hide`;
+    const text = document.createElement("span");
+    text.className = "headerLabel-1g790w";
+    text.textContent = `${name} (${length})`;
+    hide_container_button.infos_length = length;
+    const svg = DOMTools.createElement(
+      `<svg class="arrow-2HswgU headerCollapseIcon-3WeMjJ" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M16.59 8.59004L12 13.17L7.41 8.59004L6 10L12 16L18 10L16.59 8.59004Z"></path></svg>`
+    );
+
+    const filecontainer = document.createElement("div");
+    filecontainer.id = name;
+    filecontainer.className = "imagesender_filecontainer";
+
+    hide_container_button.append(text, svg);
+    let body = document.querySelector("#imagesender_body")
+    hide_container_button.addEventListener("click", () => {
+      if (filecontainer.style.display == "none") {
+        svg.classList.remove("headerCollapseIconCollapsed-3C20LE");
+        filecontainer.style.display = "grid";
+        hidden[name] = {}
+        hidden[name].isHidden = false;
+        generateimages(
+          body,
+          document
+            .querySelector("#imagesender_searchBar")
+            .querySelector("input").value,
+          body.querySelectorAll(".imagesender_buttons").length
+        );
+      } else {
+        svg.classList.add("headerCollapseIconCollapsed-3C20LE");
+        filecontainer.style.display = "none";
+        hidden[name] = {}
+        hidden[name].isHidden = true;
+        generateimages(
+          body,
+          document
+            .querySelector("#imagesender_searchBar")
+            .querySelector("input").value,
+          body.querySelectorAll(".imagesender_buttons").length
+        );
+      }
+    });
+
+    return { hide_container_button, filecontainer_temp: filecontainer };
   }
 
   async function create_UI(open) {
@@ -521,8 +610,16 @@ module.exports = (meta) => {
     remove_selected(imagesender_picker);
 
     imagesender_picker.addEventListener("click", () => {
-      if (document.querySelector("#imagesender-picker-tab-panel"))
-        document.querySelector("#imagesender-picker-tab-panel").remove();
+      //Picker element
+      const full_UI = pickers.parentElement.parentElement;
+      //Actual opened panel (emoji for exemple)
+      const panel = full_UI.lastChild;
+      panel.style.display = "none";
+      if (document.querySelector("#imagesender-picker-tab-panel")) {
+        document.querySelector("#imagesender-picker-tab-panel").style.display =
+          null;
+        return;
+      }
       const actually_selected = document.querySelector(
         "button[class*=navButtonActive]"
       );
@@ -536,12 +633,6 @@ module.exports = (meta) => {
       //Select ImageSender
       imagesender_picker.className =
         imagesender_picker.className + " " + navButtonActive_class;
-
-      //Picker element
-      const full_UI = pickers.parentElement.parentElement;
-      //Actual opened panel (emoji for exemple)
-      const panel = full_UI.lastChild;
-      panel.style.display = "none";
 
       //Prepare search bar
       const imagesender_searchBar = panel
@@ -563,7 +654,7 @@ module.exports = (meta) => {
       body.id = "imagesender_body";
       body.className =
         "scroller-2MALzE list-3V14yy thin-RnSY0a scrollerBase-1Pkza4";
-      generateimages(body);
+      body.addEventListener("scroll", image_swipe_load);
 
       panel_content.append(header, body);
       full_UI.append(panel_content);
@@ -575,6 +666,7 @@ module.exports = (meta) => {
       searchbar_input.addEventListener("change", (e) => {
         generateimages(body, e.target.value);
       });
+      generateimages(body);
     });
 
     pickers.append(imagesender_picker);
@@ -674,7 +766,7 @@ module.exports = (meta) => {
             `
       );
 
-      loadFiles();
+      check_folders();
 
       try {
         add_button();
